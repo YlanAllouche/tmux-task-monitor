@@ -994,20 +994,35 @@ class TmuxResourceMonitor:
                 elif key == curses.KEY_RIGHT or key == ord("l") or key == ord("L"):
                     self.next_tab()
                 elif key == ord("j") or key == curses.KEY_DOWN:
-                    # Enter or continue process browsing mode
-                    if self.windows_data and self.windows_data[self.current_tab].processes:
+                    if self.show_overview:
+                        self.browse_sessions = True
+                        if not self.sessions_data:
+                            pass
+                        elif self.selected_session_index < len(self.sessions_data) - 1:
+                            self.selected_session_index += 1
+                        else:
+                            self.selected_session_index = 0
+                    elif self.windows_data and self.windows_data[self.current_tab].processes:
                         self.process_browsing_active = True
                         window = self.windows_data[self.current_tab]
                         if self.selected_process_index < len(window.processes) - 1:
                             self.selected_process_index += 1
+                        else:
+                            self.selected_process_index = 0
                 elif key == ord("k") or key == curses.KEY_UP:
-                    # Move up in process browsing mode
-                    if self.process_browsing_active and self.selected_process_index > 0:
-                        self.selected_process_index -= 1
-                elif key == ord("x") or key == ord("X"):
-                    # Send SIGTERM to selected process
-                    if self.process_browsing_active:
-                        self.send_signal_to_process(15)  # SIGTERM
+                    if self.show_overview:
+                        self.browse_sessions = True
+                        if self.selected_session_index > 0:
+                            self.selected_session_index -= 1
+                        elif self.sessions_data:
+                            self.selected_session_index = len(self.sessions_data) - 1
+                    elif self.process_browsing_active and self.windows_data:
+                        window = self.windows_data[self.current_tab]
+                        if window.processes:
+                            if self.selected_process_index > 0:
+                                self.selected_process_index -= 1
+                            else:
+                                self.selected_process_index = len(window.processes) - 1
                 elif key == ord("y"):
                     # Copy process command to clipboard
                     if self.process_browsing_active:
@@ -1064,8 +1079,13 @@ class TmuxResourceMonitor:
                     elif self.process_browsing_active and self.windows_data:
                         window = self.windows_data[self.current_tab]
                         if window.processes:
-                            self.selected_process_index = len(window.processes) - 1
-                elif key == curses.KEY_LEFT or key == ord("h") or key == ord("H"):
+                            if self.selected_process_index > 0:
+                                self.selected_process_index -= 1
+                            else:
+                                self.selected_process_index = len(window.processes) - 1
+                elif key == ord("x") or key == ord("X"):
+                    if self.process_browsing_active:
+                        self.send_signal_to_process(15)  # SIGTERM
                     if self.show_overview and self.browse_sessions and self.sessions_data and self.selected_session_index > 0:
                         self.selected_session_index -= 1
                     elif self.show_overview:
