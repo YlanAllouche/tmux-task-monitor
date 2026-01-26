@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 
-PLUGIN_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
+# tmux-resource-monitor launch script
+# This script is executed by TPM when plugin is loaded
+
+PLUGIN_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # Read tmux options with defaults
 REFRESH_RATE=$(tmux show-option -gqv '@tmux_resource_monitor_refresh_rate' 2>/dev/null || echo "2.0")
