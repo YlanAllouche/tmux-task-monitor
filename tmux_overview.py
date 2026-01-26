@@ -37,6 +37,62 @@ class TmuxOverviewMonitor:
         self.tmux_cpu_percent = 0.0
         self.tmux_memory_mb = 0
         self.tmux_memory_percent = 0.0
+        self.cpu_warmup_done = False
+        self.last_cpu_measurements = {}
+
+    def warmup_cpu_async(self):
+        """Start async CPU warmup in background to establish baseline."""
+        import threading
+        def do_warmup():
+            time.sleep(0.1)
+            sessions = self.get_tmux_sessions()
+            for session_name in sessions:
+                pane_pids = self.get_session_pane_pids(session_name)
+                for pid in pane_pids:
+                    try:
+                        proc = psutil.Process(pid)
+                        times = proc.cpu_times()
+                        self.last_cpu_measurements[pid] = (time.time(), times)
+                        for child in proc.children(recursive=True):
+                            try:
+                                child_times = child.cpu_times()
+                                self.last_cpu_measurements[child.pid] = (time.time(), child_times)
+                            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                                pass
+                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+                        if pid in self.last_cpu_measurements:
+                            del self.last_cpu_measurements[pid]
+            self.cpu_warmup_done = True
+        thread = threading.Thread(target=do_warmup, daemon=True)
+        thread.start()
+
+    def get_cpu_percent(self, pid, update_baseline=False):
+        """Get CPU percent using cpu_times() for accurate measurements."""
+        try:
+            proc = psutil.Process(pid)
+            current_times = proc.cpu_times()
+            current_time = time.time()
+
+            if pid in self.last_cpu_measurements:
+                last_time, last_times = self.last_cpu_measurements[pid]
+                elapsed = current_time - last_time
+
+                if elapsed > 0.1:
+                    last_cpu = last_times.user + last_times.system
+                    current_cpu = current_times.user + current_times.system
+                    cpu_diff = current_cpu - last_cpu
+                    percent = (cpu_diff / elapsed) * 100
+                    if update_baseline:
+                        self.last_cpu_measurements[pid] = (current_time, current_times)
+                    return percent
+                else:
+                    return 0.0
+
+            if update_baseline:
+                self.last_cpu_measurements[pid] = (current_time, current_times)
+            return 0.0
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            return 0.0
 
     def init_colors(self):
         """Initialize color pairs for curses."""
@@ -131,12 +187,12 @@ class TmuxOverviewMonitor:
                 for pid in pane_pids:
                     try:
                         proc = psutil.Process(pid)
-                        session_cpu += proc.cpu_percent()
+                        session_cpu += self.get_cpu_percent(pid)
                         session_ram += proc.memory_info().rss // 1024
                         session_process_count += 1
                         for child in proc.children(recursive=True):
                             try:
-                                session_cpu += child.cpu_percent()
+                                session_cpu += self.get_cpu_percent(child.pid)
                                 session_ram += child.memory_info().rss // 1024
                                 session_process_count += 1
                             except (psutil.NoSuchProcess, psutil.AccessDenied):
@@ -159,7 +215,7 @@ class TmuxOverviewMonitor:
     def collect_system_stats(self):
         """Collect system-wide resource usage."""
         try:
-            self.system_cpu_percent = psutil.cpu_percent(interval=None)
+            self.system_cpu_percent = psutil.cpu_percent()
             mem = psutil.virtual_memory()
             self.system_memory_percent = mem.percent
             self.system_memory_mb = mem.used // (1024 * 1024)
@@ -316,16 +372,12 @@ class TmuxOverviewMonitor:
         )
         stdscr.refresh()
 
-        for proc in psutil.process_iter(["pid"]):
-            try:
-                proc.cpu_percent()
-            except (psutil.NoSuchProcess, psutil.AccessDenied):
-                pass
-
         self.collect_system_stats()
-        time.sleep(0.05)
+        self.warmup_cpu_async()
+        time.sleep(0.15)
 
-        last_refresh = time.time()
+        last_refresh = 0
+
         last_draw = 0
 
         while self.running:
