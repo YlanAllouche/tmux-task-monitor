@@ -764,6 +764,13 @@ class TmuxResourceMonitor:
                     else:
                         stdscr.addstr(y_pos, tree_x, tree_prefix, curses.color_pair(9) | curses.A_BOLD)
                 
+                # Draw space between tree prefix and command with appropriate color
+                space_x = tree_x + len(tree_prefix)
+                if is_selected:
+                    stdscr.addstr(y_pos, space_x, " ", curses.color_pair(8))
+                else:
+                    stdscr.addstr(y_pos, space_x, " ", curses.color_pair(0))
+                
                 # Draw command at calculated position (tree_x + prefix length + 1 for space)
                 if is_selected:
                     stdscr.addstr(y_pos, command_x, command, curses.color_pair(8))
