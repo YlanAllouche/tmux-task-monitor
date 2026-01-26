@@ -15,7 +15,7 @@ PLUGIN_DIR="$(dirname "$script_dir")"
 
 REFRESH_RATE=$(get_option "@tmux_resource_monitor_refresh_rate" "2.0")
 WIDTH=$(get_option "@tmux_resource_monitor_width" "80%")
-HEIGHT=$(get_option "@tmux_resource_monitor_height" "50%")
+HEIGHT=$(get_option "@tmux_resource_monitor_height" "80%")
 
 CWD=$(tmux display-message -p '#{pane_current_path}')
 

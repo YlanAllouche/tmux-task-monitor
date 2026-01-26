@@ -16,7 +16,7 @@ PLUGIN_DIR="$(dirname "$script_dir")"
 REFRESH_RATE=$(get_option "@tmux_resource_monitor_refresh_rate" "2.0")
 WINDOW_FILTER=$(get_option "@tmux_resource_monitor_window_filter" "")
 WIDTH=$(get_option "@tmux_resource_monitor_width" "80%")
-HEIGHT=$(get_option "@tmux_resource_monitor_height" "40%")
+HEIGHT=$(get_option "@tmux_resource_monitor_height" "80%")
 
 SESSION_NAME=$(tmux display-message -p '#{session_name}')
 WINDOW_NAME=$(tmux display-message -p '#{window_name}')
