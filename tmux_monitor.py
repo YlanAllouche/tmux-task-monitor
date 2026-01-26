@@ -1040,6 +1040,13 @@ Features:
     )
 
     parser.add_argument(
+        "--key",
+        dest="key",
+        help="Keybinding to open monitor (default: t)",
+        default=None,
+    )
+
+    parser.add_argument(
         "--list-sessions",
         action="store_true",
         help="List available tmux sessions and exit",
