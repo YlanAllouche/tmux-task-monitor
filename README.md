@@ -72,6 +72,10 @@ set -g @tmux_resource_monitor_key "t"
 
 # Overview key binding (default: T)
 set -g @tmux_resource_monitor_overview_key "T"
+
+# Python interpreter path (default: python3)
+# Use this to specify a Python interpreter from a virtualenv or custom location
+set -g @tmux_resource_monitor_python "/path/to/python"
 ```
 
 ## Usage

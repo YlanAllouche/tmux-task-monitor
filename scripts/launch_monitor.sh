@@ -16,6 +16,7 @@ PLUGIN_DIR="$(dirname "$script_dir")"
 REFRESH_RATE=$(get_option "@tmux_resource_monitor_refresh_rate" "2.0")
 WIDTH=$(get_option "@tmux_resource_monitor_width" "80%")
 HEIGHT=$(get_option "@tmux_resource_monitor_height" "80%")
+PYTHON=$(get_option "@tmux_resource_monitor_python" "python3")
 
 SESSION_NAME=$(tmux display-message -p '#{session_name}')
 WINDOW_NAME=$(tmux display-message -p '#{window_name}')
@@ -25,4 +26,4 @@ ARGS="$SESSION_NAME"
 ARGS="$ARGS -w $WINDOW_NAME"
 ARGS="$ARGS -r $REFRESH_RATE"
 
-tmux display-popup -E -w "$WIDTH" -h "$HEIGHT" -d "$CWD" python3 "$PLUGIN_DIR/tmux_monitor.py" $ARGS
+tmux display-popup -E -w "$WIDTH" -h "$HEIGHT" -d "$CWD" "$PYTHON" "$PLUGIN_DIR/tmux_monitor.py" $ARGS
