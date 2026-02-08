@@ -66,11 +66,17 @@ set -g @tmux_resource_monitor_width "80%"
 
 # Popup height (default: 80%)
 set -g @tmux_resource_monitor_height "40%"
+
+# Monitor key binding (default: t)
+set -g @tmux_resource_monitor_key "t"
+
+# Overview key binding (default: T)
+set -g @tmux_resource_monitor_overview_key "T"
 ```
 
 ## Usage
 
-Once installed, press (prefix+) `t` to open the resource monitor popup.
+Once installed, press (prefix+) `t` (default) to open the resource monitor popup, or `T` (default) for overview mode.
 
 ### Keyboard Controls
 

@@ -20,7 +20,11 @@ if [ "$lowercase_key" != "none" ]; then
 	tmux bind-key "${monitor_key}" run-shell -t "#{pane_id}" "$monitor_script"
 fi
 
-overview_key="T"
+overview_key=$(get_option "@tmux_resource_monitor_overview_key" "T")
 overview_script="$script_dir/scripts/launch_overview.sh"
 
-tmux bind-key "${overview_key}" run-shell -t "#{pane_id}" "$overview_script"
+lowercase_overview_key=$(echo $overview_key | tr '[:upper:]' '[:lower:]')
+
+if [ "$lowercase_overview_key" != "none" ]; then
+	tmux bind-key "${overview_key}" run-shell -t "#{pane_id}" "$overview_script"
+fi
