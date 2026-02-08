@@ -488,6 +488,14 @@ class TmuxResourceMonitor:
 
     def collect_window_data(self):
         """Collect data for all windows."""
+        # Remember current window before rebuilding
+        old_window_name = None
+        old_window_index = None
+        if self.windows_data and 0 <= self.current_tab < len(self.windows_data):
+            old_window = self.windows_data[self.current_tab]
+            old_window_name = old_window.name
+            old_window_index = old_window.index
+
         windows = self.get_tmux_windows()
         old_windows_count = len(self.windows_data)
         self.windows_data = []
@@ -533,15 +541,34 @@ class TmuxResourceMonitor:
             )
             self.windows_data.append(window_stats)
 
-        if self.window_filter and old_windows_count == 0 and self.windows_data:
-            found = False
-            for i, window in enumerate(self.windows_data):
-                if window.name == self.window_filter:
-                    self.current_tab = i
-                    found = True
-                    break
-            if not found:
-                self.current_tab = 0
+        if self.windows_data:
+            if old_windows_count == 0 and self.window_filter:
+                # First load: apply window_filter to select initial window
+                for i, window in enumerate(self.windows_data):
+                    if window.name == self.window_filter:
+                        self.current_tab = i
+                        break
+                else:
+                    self.current_tab = 0
+            elif old_window_name is not None:
+                # Subsequent refreshes: preserve current window selection
+                found_idx = None
+                # Try to match by name first
+                for i, window in enumerate(self.windows_data):
+                    if window.name == old_window_name:
+                        found_idx = i
+                        break
+                # Fall back to tmux window index if name match failed
+                if found_idx is None and old_window_index is not None:
+                    for i, window in enumerate(self.windows_data):
+                        if window.index == old_window_index:
+                            found_idx = i
+                            break
+                if found_idx is not None:
+                    self.current_tab = found_idx
+                else:
+                    # Window was removed, clamp to valid range
+                    self.current_tab = max(0, min(self.current_tab, len(self.windows_data) - 1))
 
     def draw_header(self, stdscr, height, width):
         """Draw the header with session summary."""
@@ -1254,7 +1281,7 @@ class TmuxResourceMonitor:
                 elif key == ord("x") or key == ord("X"):
                     if self.process_browsing_active:
                         self.send_signal_to_process(15)  # SIGTERM
-                    if self.show_overview and self.browse_sessions and self.sessions_data and self.selected_session_index > 0:
+                    elif self.show_overview and self.browse_sessions and self.sessions_data and self.selected_session_index > 0:
                         self.selected_session_index -= 1
                     elif self.show_overview:
                         self.browse_sessions = True
@@ -1553,11 +1580,12 @@ Press '?' in the monitor for keyboard controls.
     if not session_name:
         session_name = os.environ.get('TMUX_SESSION_NAME', None)
 
-    window_filter = args.window_filter
-    if not window_filter:
-        window_filter = read_tmux_option('tmux_resource_monitor_window_filter')
-        if not window_filter:
-            window_filter = None
+    # Sticky tmux option takes precedence over current window from CLI
+    tmux_filter = read_tmux_option('tmux_resource_monitor_window_filter')
+    if tmux_filter:
+        window_filter = tmux_filter
+    else:
+        window_filter = args.window_filter
 
     monitor = TmuxResourceMonitor(
         session_name, window_filter, refresh_rate
